@@ -13,6 +13,7 @@ Endpoints:
 """
 
 import os
+import uuid
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -22,6 +23,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai import types as genai_types
 
 load_dotenv()
 
@@ -30,6 +34,11 @@ import storage
 from tools.task_tools import create_task, list_tasks, delete_task, complete_task, get_task_summary, undo_delete_task
 from tools.calendar_tools import create_event, list_events, delete_event, undo_last_calendar_action
 from tools.personalization_tools import get_all_preferences, set_user_preference
+
+# ADK session and runner (initialized at startup)
+session_service: Optional[InMemorySessionService] = None
+runner: Optional[Runner] = None
+SESSIONS: dict = {}   # user_id -> session_id
 
 # ──────────────────────────────────────────────────
 # Request / Response Models
@@ -64,9 +73,19 @@ class PreferenceRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Multi-Agent Productivity Assistant API starting...")
+    global session_service, runner
+    print("[STARTUP] Multi-Agent Productivity Assistant API starting...")
+    # Import agent here to avoid circular import at module level
+    from agent import root_agent
+    session_service = InMemorySessionService()
+    runner = Runner(
+        agent=root_agent,
+        app_name="productivity_assistant",
+        session_service=session_service,
+    )
+    print("[STARTUP] ADK Runner initialized with Manager Agent 'Aria'.")
     yield
-    print("🛑 API shutting down.")
+    print("[SHUTDOWN] API shutting down.")
 
 app = FastAPI(
     title="Multi-Agent Productivity Assistant",
@@ -209,13 +228,108 @@ def root():
                 <div class="endpoint"><span class="method post">POST</span><span class="path">/profile</span><span class="desc">Set preference</span></div>
             </div>
 
-            <a class="btn" href="/docs">Explore Interactive API Docs &rarr;</a>
+            <a class="btn" href="#chat-section">Chat with Aria &rarr;</a>
 
             <div class="footer">
                 Built with Google ADK &bull; Gemini 2.0 Flash &bull; FastMCP &bull; AlloyDB &bull; Cloud Run<br>
                 &copy; 2026 Harshad Chavan | Gen AI Academy APAC Cohort 1
             </div>
         </div>
+
+        <!-- Embedded Chat UI -->
+        <div id="chat-section" style="max-width:800px;width:90%;margin:2rem auto 3rem auto;">
+            <div style="background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border-radius:24px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 25px 60px rgba(0,0,0,0.4);padding:2rem;">
+                <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:0.3rem;background:linear-gradient(90deg,#667eea,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Chat with Aria</h2>
+                <p style="color:#888;font-size:0.85rem;margin-bottom:1.2rem;">Your AI Productivity Manager</p>
+                <div id="chat-messages" style="height:380px;overflow-y:auto;padding:1rem;background:rgba(0,0,0,0.2);border-radius:16px;display:flex;flex-direction:column;gap:0.8rem;margin-bottom:1rem;">
+                    <div style="align-self:flex-start;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(118,75,162,0.2));border:1px solid rgba(102,126,234,0.3);padding:0.9rem 1.1rem;border-radius:16px 16px 16px 4px;max-width:80%;font-size:0.9rem;color:#e0e0e0;line-height:1.5;">
+                        Hi! I&apos;m <strong>Aria</strong>, your AI Productivity Manager. I can help you:<br>&bull; Schedule meetings and events<br>&bull; Manage your to-do list with priorities<br>&bull; Remember your preferences<br><br>How can I help you today?
+                    </div>
+                </div>
+                <div style="display:flex;gap:0.7rem;">
+                    <input id="chat-input" type="text" placeholder="e.g. Schedule a meeting tomorrow at 3pm..." autocomplete="off"
+                        style="flex:1;padding:0.85rem 1.1rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#e0e0e0;font-size:0.9rem;font-family:inherit;outline:none;"
+                        onkeypress="if(event.key==='Enter')sendChat()">
+                    <button onclick="sendChat()" id="send-btn"
+                        style="padding:0.85rem 1.4rem;background:linear-gradient(90deg,#667eea,#764ba2);color:#fff;border:none;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;">
+                        Send
+                    </button>
+                </div>
+                <div style="margin-top:0.7rem;display:flex;flex-wrap:wrap;gap:0.5rem;">
+                    <button onclick="quickSend('What can you do?')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">What can you do?</button>
+                    <button onclick="quickSend('Add a high priority task: Prepare the demo')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Add urgent task</button>
+                    <button onclick="quickSend('Schedule a team standup tomorrow at 10am for 30 minutes')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Schedule meeting</button>
+                    <button onclick="quickSend('Show my task summary')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Task summary</button>
+                    <button onclick="quickSend('My name is Harshad, timezone is Asia/Kolkata')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Set my profile</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const USER_ID = 'web_user_' + Math.random().toString(36).substr(2,6);
+            const msgs = document.getElementById('chat-messages');
+
+            function appendMsg(text, role) {
+                const div = document.createElement('div');
+                const isUser = role === 'user';
+                div.style.cssText = `align-self:${isUser?'flex-end':'flex-start'};background:${isUser?'linear-gradient(135deg,rgba(102,126,234,0.35),rgba(118,75,162,0.35))':'linear-gradient(135deg,rgba(30,30,60,0.6),rgba(50,40,80,0.6))'};border:1px solid rgba(${isUser?'102,126,234':'80,80,120'},0.3);padding:0.9rem 1.1rem;border-radius:${isUser?'16px 16px 4px 16px':'16px 16px 16px 4px'};max-width:82%;font-size:0.88rem;color:#e0e0e0;line-height:1.55;word-wrap:break-word;white-space:pre-wrap;`;
+                div.textContent = text;
+                msgs.appendChild(div);
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+
+            function appendTyping() {
+                const div = document.createElement('div');
+                div.id = 'typing-indicator';
+                div.style.cssText = 'align-self:flex-start;background:rgba(30,30,60,0.6);border:1px solid rgba(80,80,120,0.3);padding:0.9rem 1.1rem;border-radius:16px 16px 16px 4px;color:#888;font-size:0.85rem;font-style:italic;';
+                div.textContent = 'Aria is thinking...';
+                msgs.appendChild(div);
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+
+            function removeTyping() {
+                const t = document.getElementById('typing-indicator');
+                if (t) t.remove();
+            }
+
+            async function sendChat() {
+                const input = document.getElementById('chat-input');
+                const btn = document.getElementById('send-btn');
+                const msg = input.value.trim();
+                if (!msg) return;
+                input.value = '';
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                appendMsg(msg, 'user');
+                appendTyping();
+                try {
+                    const resp = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({message: msg, user_id: USER_ID})
+                    });
+                    const data = await resp.json();
+                    removeTyping();
+                    if (resp.ok) {
+                        appendMsg(data.reply, 'agent');
+                    } else {
+                        appendMsg('[Error]: ' + (data.detail || 'Something went wrong.'), 'agent');
+                    }
+                } catch(e) {
+                    removeTyping();
+                    appendMsg('[Network error]: Could not reach the agent. Please try again.', 'agent');
+                } finally {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    input.focus();
+                }
+            }
+
+            function quickSend(text) {
+                document.getElementById('chat-input').value = text;
+                sendChat();
+            }
+        </script>
     </body>
     </html>
     """
@@ -229,6 +343,46 @@ def health_check():
         "version": "1.0.0",
         "agents": ["manager_agent", "calendar_agent", "task_agent", "personalization_agent"],
     }
+
+# ── Chat Endpoint (ADK Runner) ──────────────────
+
+@app.post("/chat", tags=["Chat"])
+async def chat(req: ChatRequest):
+    """Send a message to the Manager Agent and get a reply."""
+    if runner is None:
+        raise HTTPException(status_code=503, detail="Agent not initialized yet. Try again in a moment.")
+
+    user_id = req.user_id or "default"
+
+    # Get or create session for this user
+    if user_id not in SESSIONS:
+        session = await session_service.create_session(
+            app_name="productivity_assistant",
+            user_id=user_id,
+        )
+        SESSIONS[user_id] = session.id
+    session_id = SESSIONS[user_id]
+
+    new_message = genai_types.Content(
+        role="user",
+        parts=[genai_types.Part(text=req.message)]
+    )
+
+    reply_parts = []
+    async for event in runner.run_async(
+        user_id=user_id,
+        session_id=session_id,
+        new_message=new_message,
+    ):
+        # Collect only final agent text responses
+        if event.is_final_response():
+            if event.content and event.content.parts:
+                for part in event.content.parts:
+                    if hasattr(part, "text") and part.text:
+                        reply_parts.append(part.text)
+
+    reply = "\n".join(reply_parts).strip() or "I processed your request."
+    return {"status": "ok", "reply": reply, "user_id": user_id}
 
 # ── Task Endpoints ──────────────────────────────
 
