@@ -508,9 +508,18 @@ async def chat(req: ChatRequest):
     """Send a message to the Manager Agent and get a reply."""
     user_id = req.user_id or "default"
 
-    # Use ADK agent directly
-    response = await root_agent.run_async(req.message)
-    return {"reply": response.text, "user_id": user_id}
+    # ADK run_async() returns an async generator, we need to consume it
+    response_text = ""
+    try:
+        async for response in root_agent.run_async(req.message):
+            if hasattr(response, 'text'):
+                response_text = response.text
+            else:
+                response_text = str(response)
+    except Exception as e:
+        response_text = f"Error processing request: {str(e)}"
+    
+    return {"reply": response_text, "user_id": user_id}
 
 # ── Task Endpoints ──────────────────────────────
 
