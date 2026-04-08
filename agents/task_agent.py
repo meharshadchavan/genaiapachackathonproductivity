@@ -1,5 +1,5 @@
 """
-agents/task_agent.py — Task Manager Sub-Agent.
+agents/task_agent.py — Task Manager Sub-Agent (ADK version).
 
 Specialized in to-do list management with CRUD, undo, priorities, tags, and analytics.
 """
@@ -16,8 +16,11 @@ from tools.task_tools import (
     get_task_summary,
 )
 
+# ──────────────────────────────────────────────────
+# ADK Task Agent
+# ──────────────────────────────────────────────────
 task_agent = Agent(
-    name="task_agent",
+    name="TaskAgent",
     description=(
         "Manages the user's task list and to-do items. Handles creating tasks, listing tasks "
         "with filters, updating, completing, deleting, undoing deletes, and giving productivity summaries. "
@@ -43,7 +46,6 @@ Behaviour rules:
 - After deleting, remind the user they can say 'undo' to restore it
 - Show the task summary when the user asks "how am I doing" or "what's my progress"
 """,
-    model="gemini-2.0-flash",
     tools=[
         create_task,
         list_tasks,

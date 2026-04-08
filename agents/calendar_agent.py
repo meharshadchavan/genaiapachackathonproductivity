@@ -1,5 +1,5 @@
 """
-agents/calendar_agent.py — Calendar Sub-Agent.
+agents/calendar_agent.py — Calendar Sub-Agent (ADK version).
 
 Specialized in all things scheduling: meetings, events, deadlines.
 Delegates real work to calendar_tools functions.
@@ -15,8 +15,11 @@ from tools.calendar_tools import (
     undo_last_calendar_action,
 )
 
+# ──────────────────────────────────────────────────
+# ADK Calendar Agent
+# ──────────────────────────────────────────────────
 calendar_agent = Agent(
-    name="calendar_agent",
+    name="CalendarAgent",
     description=(
         "Handles all calendar and scheduling tasks: creating meetings, listing upcoming events, "
         "updating event details, deleting events, and undoing calendar changes. "
@@ -40,7 +43,6 @@ Personalisation rules:
 
 IMPORTANT: If you don't know the current date/time, ask the user to specify it or use the date in their message.
 """,
-    model="gemini-2.0-flash",
     tools=[
         create_event,
         list_events,

@@ -1,5 +1,5 @@
 """
-agents/personalization_agent.py — Personalisation Sub-Agent.
+agents/personalization_agent.py — Personalisation Sub-Agent (ADK version).
 
 Manages user preferences: name, timezone, work hours, theme, etc.
 """
@@ -12,8 +12,11 @@ from tools.personalization_tools import (
     reset_preferences,
 )
 
+# ──────────────────────────────────────────────────
+# ADK Personalization Agent
+# ──────────────────────────────────────────────────
 personalization_agent = Agent(
-    name="personalization_agent",
+    name="PersonalizationAgent",
     description=(
         "Manages the user's personal profile and preferences. Handles setting and retrieving "
         "the user's name, timezone, work hours, preferred task priority, and UI theme. "
@@ -42,7 +45,6 @@ Behaviour rules:
 - Always greet the user by name after their name is set
 - Confirm every preference change warmly: "Got it! I'll remember that."
 """,
-    model="gemini-2.0-flash",
     tools=[
         set_user_preference,
         get_user_preference,

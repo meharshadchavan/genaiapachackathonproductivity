@@ -24,11 +24,52 @@ Aria is a multi-agent productivity platform built with Google ADK, Gemini 2.0 Fl
 - Database: Google Cloud Firestore (optional, enabled by `USE_FIRESTORE=true`)
 - Deployment: Google Cloud Run
 
-## ✅ Deployment Notes
+## 🚀 Production Deployment
+
+**Status**: Ready for Cloud Run (GenAI APAC Hackathon 2026)
+
+### Quick Start (Single Command)
+
+**On macOS/Linux:**
+```bash
+bash deploy.sh genai-apac-cohortone-assistant
+```
+
+**On Windows (PowerShell):**
+```powershell
+.\deploy.ps1 -ProjectId "genai-apac-cohortone-assistant"
+```
+
+### What This Does
+- ✅ Builds Docker image and pushes to Google Container Registry
+- ✅ Deploys to Cloud Run with 2Gi memory, 2 CPU, auto-scaling
+- ✅ Configures IAM: Public invocation + AI Platform + Firestore permissions
+- ✅ Tests endpoints and returns live API URL
+- ✅ Takes ~5-10 minutes end-to-end
+
+### Manual Deployment
+See [PRODUCTION_LOCKDOWN.md](PRODUCTION_LOCKDOWN.md) for detailed step-by-step instructions and troubleshooting.
+
+### Testing the Live API
+See [API_QUICK_REFERENCE.md](API_QUICK_REFERENCE.md) for:
+- Example cURL commands for judges
+- Endpoint documentation
+- Multi-turn conversation examples
+- Browser UI access
+
+### Pre-Deployment Checklist
+See [FINAL_SUBMISSION_CHECKLIST.md](FINAL_SUBMISSION_CHECKLIST.md) for:
+- Local verification steps
+- GCP resource checks
+- Submission requirements
+- Troubleshooting guide
+
+## ✅ Local Development
+
 1. Ensure `GOOGLE_APPLICATION_CREDENTIALS` is set for Firestore access locally, or use the Cloud Run default service account.
 2. Enable Firestore persistence by setting:
    - `USE_FIRESTORE=true`
-3. Deploy to Cloud Run using `main.app` as the service entrypoint.
+3. Run locally using `uvicorn` (as shown below)
 
 ## 📦 Run Locally
 ```bash
@@ -45,11 +86,22 @@ uvicorn main:app --host 0.0.0.0 --port 8080
 - Added `google-cloud-firestore` dependency.
 
 ## 📌 Submission Checklist
-- [ ] Cloud Run URL is live and publicly accessible
+
+**Before Final Submission:**
+- [ ] Run `bash deploy.sh` or `deploy.ps1` successfully
+- [ ] API endpoint is live: `https://genaiapachackathonproductivity-xxxxx.run.app`
+- [ ] Health check passes: `curl https://.../health`
+- [ ] Chat endpoint works: `curl -X POST https://.../chat -H "Content-Type: application/json" -d '{"message":"Hello","user_id":"test"}'`
 - [ ] Firestore persistence is enabled and tested
-- [ ] Demo video is under 3 minutes
-- [ ] Final PPT includes architecture diagram and agent workflow
-- [ ] README is clear and judge-friendly
+- [ ] Multi-turn conversations maintain context
+- [ ] All documentation updated (see [FINAL_SUBMISSION_CHECKLIST.md](FINAL_SUBMISSION_CHECKLIST.md))
+- [ ] `.env` is in `.gitignore` and NOT committed
+- [ ] Repository is clean (git log shows only meaningful commits)
+
+**For Judges:**
+- 📖 Start with [API_QUICK_REFERENCE.md](API_QUICK_REFERENCE.md) for testing examples
+- 🌐 Access interactive UI at: `https://genaiapachackathonproductivity-xxxxx.run.app`
+- 📋 Full deployment docs: [PRODUCTION_LOCKDOWN.md](PRODUCTION_LOCKDOWN.md)
 
 ## 📄 Notes
 This project is designed for rapid hackathon submission. If you want to support multi-step workflow automation, the next step is to add a workflow orchestration module that chains calendar and task actions in a single user turn.

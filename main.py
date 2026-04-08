@@ -15,6 +15,7 @@ Endpoints:
 import os
 import uuid
 import asyncio
+import re
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -23,9 +24,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
-from google.genai import types as genai_types
 
 load_dotenv()
 
@@ -35,11 +33,13 @@ from tools.task_tools import create_task, list_tasks, delete_task, complete_task
 from tools.calendar_tools import create_event, list_events, delete_event, undo_last_calendar_action
 from tools.personalization_tools import get_all_preferences, set_user_preference
 
-# ADK session and runner (initialized at startup)
-session_service: Optional[InMemorySessionService] = None
-runner: Optional[Runner] = None
-SESSIONS: dict = {}   # user_id -> session_id
+# Import ADK components
+from agent import root_agent
 
+# Fallback: No ADK session and runner needed
+SESSIONS: dict = {}   # user_id -> session_id (for compatibility)
+
+# ──────────────────────────────────────────────────
 # ──────────────────────────────────────────────────
 # Request / Response Models
 # ──────────────────────────────────────────────────
@@ -73,17 +73,8 @@ class PreferenceRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global session_service, runner
     print("[STARTUP] Multi-Agent Productivity Assistant API starting...")
-    # Import agent here to avoid circular import at module level
-    from agent import root_agent
-    session_service = InMemorySessionService()
-    runner = Runner(
-        agent=root_agent,
-        app_name="productivity_assistant",
-        session_service=session_service,
-    )
-    print("[STARTUP] ADK Runner initialized with Manager Agent 'Aria'.")
+    print("[STARTUP] Using ADK implementation with multi-agent system.")
     yield
     print("[SHUTDOWN] API shutting down.")
 
@@ -515,40 +506,11 @@ def health_check():
 @app.post("/chat", tags=["Chat"])
 async def chat(req: ChatRequest):
     """Send a message to the Manager Agent and get a reply."""
-    if runner is None:
-        raise HTTPException(status_code=503, detail="Agent not initialized yet. Try again in a moment.")
-
     user_id = req.user_id or "default"
 
-    # Get or create session for this user
-    if user_id not in SESSIONS:
-        session = await session_service.create_session(
-            app_name="productivity_assistant",
-            user_id=user_id,
-        )
-        SESSIONS[user_id] = session.id
-    session_id = SESSIONS[user_id]
-
-    new_message = genai_types.Content(
-        role="user",
-        parts=[genai_types.Part(text=req.message)]
-    )
-
-    reply_parts = []
-    async for event in runner.run_async(
-        user_id=user_id,
-        session_id=session_id,
-        new_message=new_message,
-    ):
-        # Collect only final agent text responses
-        if event.is_final_response():
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, "text") and part.text:
-                        reply_parts.append(part.text)
-
-    reply = "\n".join(reply_parts).strip() or "I processed your request."
-    return {"status": "ok", "reply": reply, "user_id": user_id}
+    # Use ADK agent directly
+    response = await root_agent.run_async(req.message)
+    return {"reply": response.text, "user_id": user_id}
 
 # ── Task Endpoints ──────────────────────────────
 

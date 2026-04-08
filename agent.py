@@ -1,29 +1,32 @@
 """
-agent.py — Root Manager Agent (primary coordinator).
+agent.py — Root Manager Agent (ADK version).
 
-This is the entry point for `adk web` and `adk run`.
-Orchestrates Calendar, Task, and Personalisation sub-agents via LLM-driven delegation.
+This is the production-ready version using Google ADK.
+Orchestrates Calendar, Task, and Personalisation sub-agents.
 """
 
 import os
 from dotenv import load_dotenv
-from google.adk.agents import Agent
 
 # Load environment variables from .env
 load_dotenv()
 
-# Import sub-agents
+from google.adk.agents import Agent
+
+# Import sub-agents (ADK versions)
 from agents.calendar_agent import calendar_agent
 from agents.task_agent import task_agent
 from agents.personalization_agent import personalization_agent
 
 # ──────────────────────────────────────────────────
-# Root Manager Agent
+# ADK Manager Agent
 # ──────────────────────────────────────────────────
 root_agent = Agent(
-    name="manager_agent",
-    description="Primary productivity assistant that coordinates scheduling, tasks, and personalisation.",
-    instruction="""You are a friendly, highly capable AI Productivity Manager named "Aria".
+    name="Aria",
+    description="A multi-agent productivity assistant for Harshad.",
+    sub_agents=[task_agent, calendar_agent, personalization_agent],
+    model="gemini-2.0-flash",
+    instruction="""You are a savage, helpful productivity assistant. Help the user manage tasks and calendar events logically.
 
 Your role is to understand what the user needs and intelligently delegate to the right specialist:
 
@@ -52,8 +55,6 @@ Example capabilities you should mention:
 
 Always be helpful, precise, and keep the user in control.
 """,
-    model="gemini-2.0-flash",
-    sub_agents=[calendar_agent, task_agent, personalization_agent],
 )
 
 if __name__ == "__main__":
