@@ -119,179 +119,345 @@ def root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Multi-Agent Productivity Assistant</title>
+        <title>Aria — Productivity Assistant</title>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html { scroll-behavior: smooth; }
             body {
                 font-family: 'Inter', sans-serif;
                 min-height: 100vh;
-                background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-                color: #e0e0e0;
-                display: flex; align-items: center; justify-content: center;
+                background: radial-gradient(circle at top left, rgba(103,126,234,0.18), transparent 28%),
+                            radial-gradient(circle at bottom right, rgba(118,75,162,0.18), transparent 25%),
+                            linear-gradient(180deg, #090b18 0%, #13162e 48%, #0c0f1d 100%);
+                color: #e8ecff;
+                padding: 0 18px 40px;
             }
-            .container {
-                max-width: 800px; width: 90%; padding: 3rem;
+            .page {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 28px 0;
+            }
+            .topbar {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                margin-bottom: 26px;
+            }
+            .topbar .badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 16px;
+                border-radius: 999px;
+                background: rgba(103,126,234,0.18);
+                color: #dbe2ff;
+                font-weight: 700;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                font-size: 0.78rem;
+            }
+            .hero h1 {
+                font-size: clamp(2.6rem, 4vw, 4.4rem);
+                line-height: 1.02;
+                letter-spacing: -0.05em;
+                max-width: 780px;
+                background: linear-gradient(90deg, #7c92ff, #9b6dff, #f093fb);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .hero p {
+                max-width: 760px;
+                color: #b8c2ff;
+                font-size: 1rem;
+                line-height: 1.75;
+            }
+            .status-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 16px;
+                margin-top: 22px;
+            }
+            .status-card {
+                padding: 18px 20px;
+                border-radius: 22px;
+                border: 1px solid rgba(255,255,255,0.08);
                 background: rgba(255,255,255,0.05);
-                backdrop-filter: blur(20px);
-                border-radius: 24px;
-                border: 1px solid rgba(255,255,255,0.1);
-                box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
             }
-            .badge {
-                display: inline-block; padding: 6px 14px;
-                background: linear-gradient(90deg, #667eea, #764ba2);
-                border-radius: 20px; font-size: 0.75rem;
-                font-weight: 600; letter-spacing: 0.5px;
-                text-transform: uppercase; color: #fff; margin-bottom: 1rem;
+            .status-card strong {
+                display: block;
+                font-size: 1.05rem;
+                margin-bottom: 8px;
+                color: #fff;
             }
-            h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 0.5rem;
-                 background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
-                 -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-            .subtitle { color: #aaa; font-size: 1rem; margin-bottom: 2rem; }
-            .agents { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-            .agent-card {
-                padding: 1.2rem; border-radius: 16px;
+            .status-card span {
+                color: #abb7ff;
+                font-size: 0.92rem;
+                line-height: 1.7;
+            }
+            .layout {
+                display: grid;
+                grid-template-columns: 1.1fr 0.9fr;
+                gap: 24px;
+                align-items: start;
+                margin-top: 32px;
+            }
+            .card {
                 background: rgba(255,255,255,0.05);
                 border: 1px solid rgba(255,255,255,0.08);
-                transition: transform 0.2s, box-shadow 0.2s;
+                border-radius: 24px;
+                box-shadow: 0 26px 80px rgba(0,0,0,0.16);
+                padding: 24px;
             }
-            .agent-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(102,126,234,0.2); }
-            .agent-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
-            .agent-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.3rem; }
-            .agent-desc { font-size: 0.8rem; color: #999; }
-            .endpoints { margin-bottom: 2rem; }
-            .endpoints h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.8rem; color: #ccc; }
-            .endpoint {
-                display: flex; align-items: center; gap: 0.8rem;
-                padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-                font-size: 0.85rem;
+            .card h2 {
+                font-size: 1.2rem;
+                margin-bottom: 18px;
+                color: #f1f4ff;
             }
-            .method {
-                padding: 3px 10px; border-radius: 6px; font-weight: 700;
-                font-size: 0.7rem; min-width: 55px; text-align: center;
+            .card p {
+                color: #b8c2ff;
+                line-height: 1.75;
+                margin-bottom: 18px;
             }
-            .get { background: rgba(34,197,94,0.15); color: #22c55e; }
-            .post { background: rgba(59,130,246,0.15); color: #3b82f6; }
-            .delete { background: rgba(239,68,68,0.15); color: #ef4444; }
-            .path { font-family: 'Courier New', monospace; color: #e0e0e0; }
-            .desc { color: #888; margin-left: auto; }
-            .btn {
-                display: inline-block; padding: 12px 28px;
+            .tool-grid {
+                display: grid;
+                gap: 14px;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+            .tool-tile {
+                padding: 18px;
+                border-radius: 20px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.08);
+                transition: transform 0.2s ease, border-color 0.2s ease;
+            }
+            .tool-tile:hover {
+                transform: translateY(-3px);
+                border-color: rgba(103,126,234,0.32);
+            }
+            .tool-tile h3 {
+                font-size: 1rem;
+                margin-bottom: 8px;
+                color: #fff;
+            }
+            .tool-tile p {
+                color: #aaafff;
+                font-size: 0.92rem;
+                line-height: 1.6;
+            }
+            .chat-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            .chat-window {
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+            }
+            .chat-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+            .chat-header h2 {
+                font-size: 1.15rem;
+                margin: 0;
+            }
+            .chat-header small {
+                color: #a7b4ff;
+            }
+            .chat-messages {
+                min-height: 420px;
+                max-height: 600px;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                padding: 20px;
+                border-radius: 22px;
+                background: rgba(6,10,30,0.78);
+                border: 1px solid rgba(255,255,255,0.08);
+            }
+            .message {
+                max-width: 82%;
+                padding: 14px 16px;
+                border-radius: 18px;
+                line-height: 1.6;
+                font-size: 0.96rem;
+                word-break: break-word;
+                white-space: pre-wrap;
+            }
+            .message.user {
+                align-self: flex-end;
+                background: linear-gradient(135deg, rgba(102,126,234,0.28), rgba(118,75,162,0.28));
+                border: 1px solid rgba(110,142,255,0.22);
+            }
+            .message.agent {
+                align-self: flex-start;
+                background: rgba(18,24,60,0.88);
+                border: 1px solid rgba(96,108,224,0.14);
+            }
+            .message.typing {
+                font-style: italic;
+                color: #b0b9ff;
+            }
+            .chat-input-row {
+                display: grid;
+                gap: 12px;
+            }
+            .chat-input-row input {
+                width: 100%;
+                border-radius: 16px;
+                border: 1px solid rgba(255,255,255,0.12);
+                background: rgba(255,255,255,0.06);
+                color: #eef2ff;
+                padding: 16px 18px;
+                font-size: 0.96rem;
+                outline: none;
+            }
+            .chat-input-row button {
+                width: 140px;
+                justify-self: end;
+                padding: 14px 18px;
+                border-radius: 14px;
+                border: none;
+                cursor: pointer;
+                color: #fff;
                 background: linear-gradient(90deg, #667eea, #764ba2);
-                color: #fff; text-decoration: none;
-                border-radius: 12px; font-weight: 600; font-size: 0.9rem;
-                transition: opacity 0.2s;
+                font-weight: 700;
+                transition: transform 0.2s ease, opacity 0.2s ease;
             }
-            .btn:hover { opacity: 0.85; }
-            .footer { margin-top: 2rem; font-size: 0.75rem; color: #666; text-align: center; }
+            .chat-input-row button:hover { transform: translateY(-1px); opacity: 0.96; }
+            .shortcut-buttons {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .shortcut-buttons button {
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 999px;
+                background: rgba(255,255,255,0.05);
+                color: #ccd6ff;
+                padding: 10px 14px;
+                font-size: 0.84rem;
+                cursor: pointer;
+                transition: background 0.2s ease, transform 0.2s ease;
+            }
+            .shortcut-buttons button:hover {
+                background: rgba(103,126,234,0.16);
+                transform: translateY(-1px);
+            }
+            @media (max-width: 960px) {
+                .layout { grid-template-columns: 1fr; }
+                .status-grid { grid-template-columns: 1fr; }
+            }
+            @media (max-width: 680px) {
+                .topbar, .layout { gap: 18px; }
+                .chat-input-row button { width: 100%; }
+            }
         </style>
     </head>
     <body>
-        <div class="container">
-            <div class="badge">Gen AI APAC Hackathon 2026</div>
-            <h1>Multi-Agent Productivity Assistant</h1>
-            <p class="subtitle">An AI-powered multi-agent system built with Google ADK, MCP &amp; Gemini</p>
-
-            <div class="agents">
-                <div class="agent-card">
-                    <div class="agent-icon">&#128197;</div>
-                    <div class="agent-name">Calendar Agent</div>
-                    <div class="agent-desc">Schedule meetings, manage events, undo changes</div>
+        <div class="page">
+            <header class="topbar">
+                <span class="badge">Gen AI APAC Hackathon 2026</span>
+                <div class="hero">
+                    <h1>Aria — your multi-agent productivity dashboard</h1>
+                    <p>Use natural language to manage tasks, schedule meetings, and personalize your workspace. Aria routes your queries to the right specialist agent automatically.</p>
                 </div>
-                <div class="agent-card">
-                    <div class="agent-icon">&#9989;</div>
-                    <div class="agent-name">Task Agent</div>
-                    <div class="agent-desc">CRUD tasks, priorities, tags, undo &amp; analytics</div>
+            </header>
+            <section class="status-grid">
+                <div class="status-card">
+                    <strong>Agent orchestration</strong>
+                    <span>Manager + Task, Calendar, Personalization sub-agents.</span>
                 </div>
-                <div class="agent-card">
-                    <div class="agent-icon">&#128100;</div>
-                    <div class="agent-name">Personalisation Agent</div>
-                    <div class="agent-desc">User profile, timezone, work hours, preferences</div>
+                <div class="status-card">
+                    <strong>Persistence ready</strong>
+                    <span>Optional Firestore mode keeps tasks, events and profile persistent.</span>
                 </div>
-            </div>
-
-            <div class="endpoints">
-                <h3>API Endpoints</h3>
-                <div class="endpoint"><span class="method get">GET</span><span class="path">/health</span><span class="desc">Service health check</span></div>
-                <div class="endpoint"><span class="method get">GET</span><span class="path">/tasks</span><span class="desc">List all tasks</span></div>
-                <div class="endpoint"><span class="method post">POST</span><span class="path">/tasks</span><span class="desc">Create a task</span></div>
-                <div class="endpoint"><span class="method post">POST</span><span class="path">/tasks/{id}/complete</span><span class="desc">Mark task done</span></div>
-                <div class="endpoint"><span class="method delete">DEL</span><span class="path">/tasks/{id}</span><span class="desc">Soft-delete task</span></div>
-                <div class="endpoint"><span class="method post">POST</span><span class="path">/tasks/undo</span><span class="desc">Undo last delete</span></div>
-                <div class="endpoint"><span class="method get">GET</span><span class="path">/tasks/summary</span><span class="desc">Productivity dashboard</span></div>
-                <div class="endpoint"><span class="method get">GET</span><span class="path">/events</span><span class="desc">List events</span></div>
-                <div class="endpoint"><span class="method post">POST</span><span class="path">/events</span><span class="desc">Create an event</span></div>
-                <div class="endpoint"><span class="method delete">DEL</span><span class="path">/events/{id}</span><span class="desc">Delete event</span></div>
-                <div class="endpoint"><span class="method post">POST</span><span class="path">/events/undo</span><span class="desc">Undo last event action</span></div>
-                <div class="endpoint"><span class="method get">GET</span><span class="path">/profile</span><span class="desc">User profile</span></div>
-                <div class="endpoint"><span class="method post">POST</span><span class="path">/profile</span><span class="desc">Set preference</span></div>
-            </div>
-
-            <a class="btn" href="#chat-section">Chat with Aria &rarr;</a>
-
-            <div class="footer">
-                Built with Google ADK &bull; Gemini 2.0 Flash &bull; FastMCP &bull; AlloyDB &bull; Cloud Run<br>
-                &copy; 2026 Harshad Chavan | Gen AI Academy APAC Cohort 1
-            </div>
-        </div>
-
-        <!-- Embedded Chat UI -->
-        <div id="chat-section" style="max-width:800px;width:90%;margin:2rem auto 3rem auto;">
-            <div style="background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border-radius:24px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 25px 60px rgba(0,0,0,0.4);padding:2rem;">
-                <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:0.3rem;background:linear-gradient(90deg,#667eea,#f093fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Chat with Aria</h2>
-                <p style="color:#888;font-size:0.85rem;margin-bottom:1.2rem;">Your AI Productivity Manager</p>
-                <div id="chat-messages" style="height:380px;overflow-y:auto;padding:1rem;background:rgba(0,0,0,0.2);border-radius:16px;display:flex;flex-direction:column;gap:0.8rem;margin-bottom:1rem;">
-                    <div style="align-self:flex-start;background:linear-gradient(135deg,rgba(102,126,234,0.2),rgba(118,75,162,0.2));border:1px solid rgba(102,126,234,0.3);padding:0.9rem 1.1rem;border-radius:16px 16px 16px 4px;max-width:80%;font-size:0.9rem;color:#e0e0e0;line-height:1.5;">
-                        Hi! I&apos;m <strong>Aria</strong>, your AI Productivity Manager. I can help you:<br>&bull; Schedule meetings and events<br>&bull; Manage your to-do list with priorities<br>&bull; Remember your preferences<br><br>How can I help you today?
+                <div class="status-card">
+                    <strong>Cloud Run deployable</strong>
+                    <span>REST API, UI and MCP tools all available inside one container.</span>
+                </div>
+            </section>
+            <div class="layout">
+                <div class="card">
+                    <h2>Assistant workflow</h2>
+                    <p>Aria understands natural language like:</p>
+                    <ul style="color:#c4c9ff; margin: 0 0 18px 18px; line-height: 1.8;">
+                        <li>"Create a high-priority task for the demo by Friday."</li>
+                        <li>"Schedule a project review tomorrow at 3pm."</li>
+                        <li>"Remember my name is Harshad and timezone is Asia/Kolkata."</li>
+                        <li>"Undo the last calendar action."</li>
+                    </ul>
+                    <div class="tool-grid">
+                        <div class="tool-tile">
+                            <h3>Task management</h3>
+                            <p>Create, complete, delete, undo and summarize tasks using natural language.</p>
+                        </div>
+                        <div class="tool-tile">
+                            <h3>Calendar scheduling</h3>
+                            <p>Schedule events, view meetings, delete items and restore them with undo.</p>
+                        </div>
+                        <div class="tool-tile">
+                            <h3>Personalization</h3>
+                            <p>Set preferences, timezone, work hours and default task priority.</p>
+                        </div>
                     </div>
                 </div>
-                <div style="display:flex;gap:0.7rem;">
-                    <input id="chat-input" type="text" placeholder="e.g. Schedule a meeting tomorrow at 3pm..." autocomplete="off"
-                        style="flex:1;padding:0.85rem 1.1rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:12px;color:#e0e0e0;font-size:0.9rem;font-family:inherit;outline:none;"
-                        onkeypress="if(event.key==='Enter')sendChat()">
-                    <button onclick="sendChat()" id="send-btn"
-                        style="padding:0.85rem 1.4rem;background:linear-gradient(90deg,#667eea,#764ba2);color:#fff;border:none;border-radius:12px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;">
-                        Send
-                    </button>
-                </div>
-                <div style="margin-top:0.7rem;display:flex;flex-wrap:wrap;gap:0.5rem;">
-                    <button onclick="quickSend('What can you do?')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">What can you do?</button>
-                    <button onclick="quickSend('Add a high priority task: Prepare the demo')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Add urgent task</button>
-                    <button onclick="quickSend('Schedule a team standup tomorrow at 10am for 30 minutes')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Schedule meeting</button>
-                    <button onclick="quickSend('Show my task summary')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Task summary</button>
-                    <button onclick="quickSend('My name is Harshad, timezone is Asia/Kolkata')" style="padding:5px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;color:#ccc;font-size:0.78rem;cursor:pointer;">Set my profile</button>
+                <div class="card chat-panel">
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <div>
+                                <h2>Chat with Aria</h2>
+                                <small>Ask anything productivity-related.</small>
+                            </div>
+                            <span style="color:#8e9cff;">Live AI assistant</span>
+                        </div>
+                        <div id="chat-messages" class="chat-messages">
+                            <div class="message agent">Hi, I'm <strong>Aria</strong>. I can help you manage tasks, schedule meetings, and remember preferences. What would you like to do?</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input id="chat-input" type="text" placeholder="Type a request, e.g. 'Add a task to prepare slides'" autocomplete="off" onkeypress="if(event.key==='Enter')sendChat()" />
+                        <button onclick="sendChat()" id="send-btn">Send</button>
+                    </div>
+                    <div class="shortcut-buttons">
+                        <button onclick="quickSend('What can you do?')">What can you do?</button>
+                        <button onclick="quickSend('Create a high priority task: finish the presentation')">Add urgent task</button>
+                        <button onclick="quickSend('Schedule a meeting tomorrow at 11am with the team')">Schedule meeting</button>
+                        <button onclick="quickSend('Show my task summary')">Task summary</button>
+                        <button onclick="quickSend('My name is Harshad, timezone is Asia/Kolkata')">Set my profile</button>
+                    </div>
                 </div>
             </div>
         </div>
-
         <script>
-            const USER_ID = 'web_user_' + Math.random().toString(36).substr(2,6);
+            const USER_ID = localStorage.getItem('aria_user_id') || ('web_user_' + Math.random().toString(36).substr(2,6));
+            localStorage.setItem('aria_user_id', USER_ID);
             const msgs = document.getElementById('chat-messages');
-
             function appendMsg(text, role) {
                 const div = document.createElement('div');
-                const isUser = role === 'user';
-                div.style.cssText = `align-self:${isUser?'flex-end':'flex-start'};background:${isUser?'linear-gradient(135deg,rgba(102,126,234,0.35),rgba(118,75,162,0.35))':'linear-gradient(135deg,rgba(30,30,60,0.6),rgba(50,40,80,0.6))'};border:1px solid rgba(${isUser?'102,126,234':'80,80,120'},0.3);padding:0.9rem 1.1rem;border-radius:${isUser?'16px 16px 4px 16px':'16px 16px 16px 4px'};max-width:82%;font-size:0.88rem;color:#e0e0e0;line-height:1.55;word-wrap:break-word;white-space:pre-wrap;`;
+                div.className = 'message ' + role;
                 div.textContent = text;
                 msgs.appendChild(div);
                 msgs.scrollTop = msgs.scrollHeight;
             }
-
             function appendTyping() {
                 const div = document.createElement('div');
                 div.id = 'typing-indicator';
-                div.style.cssText = 'align-self:flex-start;background:rgba(30,30,60,0.6);border:1px solid rgba(80,80,120,0.3);padding:0.9rem 1.1rem;border-radius:16px 16px 16px 4px;color:#888;font-size:0.85rem;font-style:italic;';
+                div.className = 'message typing';
                 div.textContent = 'Aria is thinking...';
                 msgs.appendChild(div);
                 msgs.scrollTop = msgs.scrollHeight;
             }
-
             function removeTyping() {
                 const t = document.getElementById('typing-indicator');
                 if (t) t.remove();
             }
-
             async function sendChat() {
                 const input = document.getElementById('chat-input');
                 const btn = document.getElementById('send-btn');
@@ -315,7 +481,7 @@ def root():
                     } else {
                         appendMsg('[Error]: ' + (data.detail || 'Something went wrong.'), 'agent');
                     }
-                } catch(e) {
+                } catch (e) {
                     removeTyping();
                     appendMsg('[Network error]: Could not reach the agent. Please try again.', 'agent');
                 } finally {
@@ -324,9 +490,9 @@ def root():
                     input.focus();
                 }
             }
-
             function quickSend(text) {
-                document.getElementById('chat-input').value = text;
+                const input = document.getElementById('chat-input');
+                input.value = text;
                 sendChat();
             }
         </script>

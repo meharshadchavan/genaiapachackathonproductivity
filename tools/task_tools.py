@@ -51,6 +51,7 @@ def create_task(
         "completed_at": None,
     }
     storage.tasks[task_id] = task
+    storage.persist_task(task)
     return {"status": "ok", "message": f"Task '{title}' created with priority={priority}.", "task": task}
 
 
@@ -151,6 +152,7 @@ def update_task(
         task["notes"] = notes
 
     task["updated_at"] = storage.now_iso()
+    storage.persist_task(task)
     return {"status": "ok", "message": f"Task '{task_id}' updated.", "task": task}
 
 
@@ -172,6 +174,7 @@ def complete_task(task_id: str) -> dict:
     task["status"] = "done"
     task["completed_at"] = storage.now_iso()
     task["updated_at"] = storage.now_iso()
+    storage.persist_task(task)
     return {"status": "ok", "message": f"✅ Task '{task['title']}' marked as done!", "task": task}
 
 
@@ -193,6 +196,7 @@ def delete_task(task_id: str) -> dict:
     if not task:
         return {"status": "error", "message": f"Task '{task_id}' not found."}
     storage.task_trash_stack.append(task)
+    storage.delete_task_doc(task_id)
     return {
         "status": "ok",
         "message": f"Task '{task['title']}' deleted (moved to trash). Say 'undo' to restore it.",
@@ -210,6 +214,7 @@ def undo_delete_task() -> dict:
         return {"status": "error", "message": "No deleted tasks to restore."}
     task = storage.task_trash_stack.pop()
     storage.tasks[task["id"]] = task
+    storage.persist_task(task)
     return {
         "status": "ok",
         "message": f"↩️ Task '{task['title']}' restored successfully!",

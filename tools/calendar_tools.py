@@ -55,6 +55,7 @@ def create_event(
             "updated_at": storage.now_iso(),
         }
         storage.events[event_id] = event
+        storage.persist_event(event)
         return {"status": "ok", "message": f"Event '{title}' created.", "event": event}
     except ValueError as e:
         return {"status": "error", "message": f"Invalid date_time format: {e}"}
@@ -162,6 +163,7 @@ def update_event(
         event["location"] = location
 
     event["updated_at"] = storage.now_iso()
+    storage.persist_event(event)
     return {"status": "ok", "message": f"Event '{event_id}' updated.", "event": event}
 
 
@@ -183,6 +185,7 @@ def delete_event(event_id: str) -> dict:
     if not event:
         return {"status": "error", "message": f"Event '{event_id}' not found."}
     storage.calendar_trash_stack.append(("delete", event))
+    storage.delete_event_doc(event_id)
     return {"status": "ok", "message": f"Event '{event['title']}' deleted. You can undo this action."}
 
 
@@ -202,6 +205,7 @@ def undo_last_calendar_action() -> dict:
 
     action, event = storage.calendar_trash_stack.pop()
     storage.events[event["id"]] = event
+    storage.persist_event(event)
     return {
         "status": "ok",
         "message": f"Undo successful. Event '{event['title']}' restored (action: {action}).",

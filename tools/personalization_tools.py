@@ -35,6 +35,7 @@ def set_user_preference(key: str, value: str) -> dict:
             "message": f"Unknown preference key '{key}'. Valid keys: {sorted(VALID_KEYS)}",
         }
     storage.user_profile[key] = value
+    storage.persist_profile()
     return {
         "status": "ok",
         "message": f"Preference '{key}' set to '{value}'.",
@@ -93,6 +94,7 @@ def reset_preferences() -> dict:
         "theme": "dark",
     }
     storage.user_profile.update(defaults)
+    storage.persist_profile()
     return {
         "status": "ok",
         "message": "All preferences reset to defaults.",
