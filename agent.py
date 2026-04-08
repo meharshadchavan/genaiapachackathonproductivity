@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from google.adk.agents import Agent
+from google.adk.models import Gemini
 
 # Import sub-agents (ADK versions)
 from agents.calendar_agent import calendar_agent
@@ -19,13 +20,18 @@ from agents.task_agent import task_agent
 from agents.personalization_agent import personalization_agent
 
 # ──────────────────────────────────────────────────
-# ADK Manager Agent
+# ADK Manager Agent with Properly Initialized LLM
 # ──────────────────────────────────────────────────
+
+# 1. Create the Gemini LLM object (Pydantic model with model_copy method)
+llm_instance = Gemini(model="gemini-2.0-flash")
+
+# 2. Pass the OBJECT, not the string, to the Agent
 root_agent = Agent(
     name="Aria",
     description="A multi-agent productivity assistant for Harshad.",
     sub_agents=[task_agent, calendar_agent, personalization_agent],
-    model="gemini-2.0-flash",
+    model=llm_instance,
     instruction="""You are a savage, helpful productivity assistant. Help the user manage tasks and calendar events logically.
 
 Your role is to understand what the user needs and intelligently delegate to the right specialist:
