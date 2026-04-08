@@ -50,6 +50,15 @@ bash deploy.sh genai-apac-cohortone-assistant
 ### Manual Deployment
 See [PRODUCTION_LOCKDOWN.md](PRODUCTION_LOCKDOWN.md) for detailed step-by-step instructions and troubleshooting.
 
+### Comprehensive Deployment Guide
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for:
+- Pre-deployment validation
+- Cloud Run deployment options (gcloud CLI, Docker, GitHub Actions)
+- Environment variables configuration
+- Post-deployment validation checklist
+- Rollback procedures
+- Maintenance and monitoring
+
 ### Testing the Live API
 See [API_QUICK_REFERENCE.md](API_QUICK_REFERENCE.md) for:
 - Example cURL commands for judges
